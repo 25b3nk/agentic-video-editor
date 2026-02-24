@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,10 +18,22 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    settings.ensure_dirs()
+    await start_worker()
+    logger.info("Agentic Video Editor started")
+    yield
+    await stop_worker()
+    logger.info("Agentic Video Editor stopped")
+
+
 app = FastAPI(
     title="Agentic Video Editor",
     description="AI-powered parameterized video editing workflows",
     version="0.1.0",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -32,19 +45,6 @@ app.add_middleware(
 
 app.include_router(workflows.router)
 app.include_router(jobs.router)
-
-
-@app.on_event("startup")
-async def on_startup() -> None:
-    settings.ensure_dirs()
-    await start_worker()
-    logger.info("Agentic Video Editor started")
-
-
-@app.on_event("shutdown")
-async def on_shutdown() -> None:
-    await stop_worker()
-    logger.info("Agentic Video Editor stopped")
 
 
 @app.get("/health")

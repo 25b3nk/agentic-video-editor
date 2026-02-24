@@ -2,8 +2,8 @@ import uuid
 from datetime import datetime
 from enum import StrEnum
 
-from sqlalchemy import DateTime, ForeignKey, String, Text
-from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy import DateTime, ForeignKey, JSON, String, Text
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
@@ -25,11 +25,11 @@ class Job(Base):
         UUID(as_uuid=True), ForeignKey("workflows.id"), nullable=False
     )
     status: Mapped[str] = mapped_column(String(50), default=JobStatus.PENDING, nullable=False)
-    params: Mapped[dict | None] = mapped_column(JSONB)
+    params: Mapped[dict | None] = mapped_column(JSON)
     input_video_path: Mapped[str | None] = mapped_column(Text)
     output_video_path: Mapped[str | None] = mapped_column(Text)
     error_message: Mapped[str | None] = mapped_column(Text)
-    step_logs: Mapped[list | None] = mapped_column(JSONB, default=list)
+    step_logs: Mapped[list | None] = mapped_column(JSON, default=list)
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     started_at: Mapped[datetime | None] = mapped_column(DateTime)

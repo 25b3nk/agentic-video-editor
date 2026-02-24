@@ -23,8 +23,6 @@ class GroupStep(BaseStep):
     step_type = "group"
 
     async def execute(self, step_def: dict, ctx: "ExecutionContext") -> StepResult:
-        from app.engine.executor import run_steps
-
         sub_steps = step_def.get("steps", [])
         if not sub_steps:
             return StepResult()

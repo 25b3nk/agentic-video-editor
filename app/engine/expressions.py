@@ -92,9 +92,12 @@ def evaluate(expression: str, ctx: "ExecutionContext") -> Any:
         value = _resolve_variable(m.group(1).strip(), ctx)
         interpolated = interpolated[: m.start()] + str(value) + interpolated[m.end():]
 
+    # Normalize YAML-style literals before evaluating as Python
+    interpolated_for_eval = _normalize_literals(interpolated)
+
     # Try to evaluate as a Python expression (arithmetic / comparisons)
     try:
-        tree = ast.parse(interpolated, mode="eval")
+        tree = ast.parse(interpolated_for_eval, mode="eval")
         # Safety: only allow safe node types
         _assert_safe_ast(tree)
         return eval(compile(tree, "<expr>", "eval"))  # noqa: S307
@@ -103,7 +106,13 @@ def evaluate(expression: str, ctx: "ExecutionContext") -> Any:
 
 
 def _try_coerce(value: str) -> Any:
-    """Try to convert a literal string to int or float."""
+    """Try to convert a literal string to a Python value."""
+    if value.lower() == "true":
+        return True
+    if value.lower() == "false":
+        return False
+    if value.lower() == "null":
+        return None
     try:
         return int(value)
     except ValueError:
@@ -112,12 +121,13 @@ def _try_coerce(value: str) -> Any:
         return float(value)
     except ValueError:
         pass
-    if value.lower() == "true":
-        return True
-    if value.lower() == "false":
-        return False
-    if value.lower() == "null":
-        return None
+    # Handle list/dict/tuple literals like [], [1,2,3], {}
+    try:
+        coerced = ast.literal_eval(value)
+        if isinstance(coerced, (list, dict, tuple)):
+            return coerced
+    except (ValueError, SyntaxError):
+        pass
     return value
 
 
@@ -126,12 +136,31 @@ _SAFE_NODES = {
     ast.Constant, ast.Add, ast.Sub, ast.Mult, ast.Div, ast.Mod, ast.Pow,
     ast.USub, ast.UAdd, ast.Eq, ast.NotEq, ast.Lt, ast.LtE, ast.Gt, ast.GtE,
     ast.And, ast.Or, ast.Not, ast.IfExp,
+    ast.Name, ast.Load,  # needed for None, True, False literals
 }
+
+# Only these names are allowed in expressions (Python builtins used as literals)
+_SAFE_NAME_IDS = {"None", "True", "False"}
+
+# Normalize YAML-style literals to their Python equivalents
+_NULL_PATTERN = re.compile(r"\bnull\b")
+_TRUE_PATTERN = re.compile(r"\btrue\b")
+_FALSE_PATTERN = re.compile(r"\bfalse\b")
+
+
+def _normalize_literals(text: str) -> str:
+    """Replace YAML null/true/false with Python None/True/False in non-token text."""
+    text = _NULL_PATTERN.sub("None", text)
+    text = _TRUE_PATTERN.sub("True", text)
+    text = _FALSE_PATTERN.sub("False", text)
+    return text
 
 
 def _assert_safe_ast(tree: ast.AST) -> None:
     for node in ast.walk(tree):
-        if type(node) not in _SAFE_NODES:
+        if isinstance(node, ast.Name) and node.id not in _SAFE_NAME_IDS:
+            raise ValueError(f"Unsafe name reference: {node.id!r}")
+        elif type(node) not in _SAFE_NODES:
             raise ValueError(f"Unsafe expression node: {type(node).__name__}")
 
 

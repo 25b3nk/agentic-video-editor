@@ -1,8 +1,8 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey
-from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy import DateTime, ForeignKey, JSON
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
@@ -17,12 +17,12 @@ class VideoAnalysis(Base):
     )
 
     # Analysis results stored as JSON blobs
-    metadata_result: Mapped[dict | None] = mapped_column(JSONB)      # FFprobe output
-    beat_detection: Mapped[dict | None] = mapped_column(JSONB)       # librosa beats
-    scene_detection: Mapped[dict | None] = mapped_column(JSONB)      # PySceneDetect
-    transcription: Mapped[dict | None] = mapped_column(JSONB)        # Whisper
-    face_detection: Mapped[dict | None] = mapped_column(JSONB)       # MediaPipe
-    silence_detection: Mapped[dict | None] = mapped_column(JSONB)    # FFmpeg
+    metadata_result: Mapped[dict | None] = mapped_column(JSON)      # FFprobe output
+    beat_detection: Mapped[dict | None] = mapped_column(JSON)       # librosa beats
+    scene_detection: Mapped[dict | None] = mapped_column(JSON)      # PySceneDetect
+    transcription: Mapped[dict | None] = mapped_column(JSON)        # Whisper
+    face_detection: Mapped[dict | None] = mapped_column(JSON)       # MediaPipe
+    silence_detection: Mapped[dict | None] = mapped_column(JSON)    # FFmpeg
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
