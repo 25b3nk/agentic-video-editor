@@ -13,11 +13,12 @@ from pathlib import Path
 from app.analysis.beats import detect_beats
 from app.analysis.faces import detect_faces
 from app.analysis.metadata import extract_metadata
+from app.analysis.scene import detect_scenes
 
 logger = logging.getLogger(__name__)
 
 # Analysis types that are currently implemented
-IMPLEMENTED = {"metadata", "beat_detection", "face_detection"}
+IMPLEMENTED = {"metadata", "beat_detection", "face_detection", "scene_detection"}
 
 
 async def run_analysis(
@@ -39,6 +40,8 @@ async def run_analysis(
             tasks["beat_detection"] = asyncio.create_task(detect_beats(video_path))
         elif analysis_type == "face_detection":
             tasks["face_detection"] = asyncio.create_task(detect_faces(video_path))
+        elif analysis_type == "scene_detection":
+            tasks["scene_detection"] = asyncio.create_task(detect_scenes(video_path))
         elif analysis_type not in IMPLEMENTED:
             logger.warning("Analysis type '%s' not yet implemented, skipping", analysis_type)
 
